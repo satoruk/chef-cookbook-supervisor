@@ -8,6 +8,6 @@ recipe "supervisor", "Installs and configures supervisord"
 
 depends "python"
 
-%w{ ubuntu debian }.each do |os|
+%w{ ubuntu debian centos }.each do |os|
   supports os
 end

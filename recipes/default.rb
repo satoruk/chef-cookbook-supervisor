@@ -49,23 +49,48 @@ directory node['supervisor']['log_dir'] do
   recursive true
 end
 
+
+availableUpstart = false
 case node['platform']
-when "debian", "ubuntu"
-  template "/etc/init.d/supervisor" do
-    source "supervisor.init.erb"
+when "ubuntu"
+  availableUpstart = true if node[:platform_version].to_f >= 6.10
+when "centos"
+  availableUpstart = true if node[:platform_version].to_f >= 6.0
+end
+
+if availableUpstart
+  template "/etc/init/supervisor.conf" do
+    source "supervisor.upstart.conf.erb"
     owner "root"
     group "root"
     mode "755"
   end
-
-  template "/etc/default/supervisor" do
-    source "supervisor.default.erb"
-    owner "root"
-    group "root"
-    mode "644"
-  end
-
   service "supervisor" do
+    provider Chef::Provider::Service::Upstart
     action [:enable, :start]
   end
+else
+  case node['platform']
+  when "debian", "ubuntu"
+    template "/etc/init.d/supervisor" do
+      source "supervisor.init.erb"
+      owner "root"
+      group "root"
+      mode "755"
+    end
+
+    template "/etc/default/supervisor" do
+      source "supervisor.default.erb"
+      owner "root"
+      group "root"
+      mode "644"
+    end
+
+    service "supervisor" do
+      action [:enable, :start]
+    end
+  else
+    Chef::Log.warn("The #{node['platform']} is not support")
+  end
 end
+
